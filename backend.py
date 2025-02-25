@@ -1,18 +1,20 @@
 import subprocess
 import numpy as np
-from scipy.signal import spectrogram
 import os
+import shutil
 import json
 import librosa
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.responses import JSONResponse
 
-SAMPLE_RATE = 44100
+SAMPLE_RATE = 44100 
 
 if os.path.exists('hash_database.json'):
     # Open and load the JSON data if the file exists
     print("Loading database...")
     with open('hash_database.json', 'r') as f:
         hash_database = json.load(f)
+    print("Finished loading database.")
 else:
     hash_database = {}
 
@@ -34,7 +36,6 @@ def extract_key_points(Sxx):
         slice_magnitudes = Sxx[:, t_idx]
         slice_magnitudes[0] = 0
 
-        # top_freqs = [18, 131, 244, 357]
         top_freqs = [0, 0, 0, 0]
 
         index = 0
@@ -51,7 +52,6 @@ def extract_key_points(Sxx):
             
     return key_points
 
-# 4. Hashing function for matching (simple example)
 def generate_hashes(key_points):
     hashes = []
     for points in key_points:
@@ -59,7 +59,6 @@ def generate_hashes(key_points):
         hashes.append(hash_value)
     return hashes
 
-# 6. Matching function
 def get_matches(query_hashes, database):
     matches = []
     for song_name, song_hashes in database.items():
@@ -76,76 +75,59 @@ def check_snippet(filepath):
     # Load the MP3 file
     samples = get_audio_samples(filepath)
 
-    # Convert samples to float32 for librosa
-    # samples_float = samples.astype(np.float32) / np.max(np.abs(samples))  # Normalize audio
-    # samples_float = librosa.effects.time_stretch(samples_float, rate=1.0)
-    # samples_float = librosa.effects.pitch_shift(samples_float, sr=SAMPLE_RATE, n_steps=0)
-    # samples = (samples_float * np.max(np.abs(samples))).astype(np.int16)  # Convert back to int16
-
     Sxx = get_spectrogram(samples)
     key_points = extract_key_points(Sxx)
     song_hashes = generate_hashes(key_points)
 
     matches = get_matches(song_hashes, hash_database)
-    top_matches = []
-    for song_name, num_matches in matches:
-        top_matches.append(song_name)
-        print(f'Song: {song_name}, Matches: {num_matches}')
+    return matches[0][0]
+    # top_matches = []
+    # for song_name, num_matches in matches:
+    #     top_matches.append(song_name)
+    #     print(f'Song: {song_name}, Matches: {num_matches}')
 
-    if matches[0][1] > 5 and matches[0][1] > matches[1][1]+4:
-        print("PASSED")
-        return matches[0][0]
-    else:
-        return ''
+    # if matches[0][1] > 5 and matches[0][1] > matches[1][1]+4:
+    #     print("PASSED")
+    #     return matches[0][0]
+    # else:
+    #     return ''
 
 def download_song_info(url):
     print("URL IS....", url)
     result = subprocess.run(['node', 'download_info.js', url], capture_output=True, text=True)
     if result.returncode == 0:
-        print(f"Success loading song info: {url}")
-        results = json.loads(result.stdout)
-        return jsonify(results)
+        print(result.stdout)
+        return json.loads(result.stdout)
     else:
         print(f"Error: {url} -- General download error")
-        return jsonify({'artworkURL': '', 'title': '', 'username': ''})
+        return {'artworkURL': '', 'title': '', 'username': ''}
+    
 
-app = Flask(__name__)
-
+app = FastAPI()
 # Directory to save uploaded files temporarily
 UPLOAD_FOLDER = 'uploads'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-@app.route('/upload_file', methods=['POST'])
-def upload_file():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
+@app.post("/upload/")
+async def upload_audio(file: UploadFile = File(...)):
+    print("UPLOADING AUDIO!!!!")
+    try:
+        # Save the file
+        file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Process the file
+        result = check_snippet(file_path)  # Now we pass the file path
+        print(result)
+        info = download_song_info(result)
+        return JSONResponse(content=info)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     
-    file = request.files['file']
-
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
-
-    # Save the file temporarily
-    filepath = os.path.join(UPLOAD_FOLDER, file.filename)
-    file.save(filepath)
-
-    result = check_snippet(filepath)
-    print()
-
-    # Delete the file after processing
-    os.remove(filepath)
-
-    # Return the result as a JSON response
-    return jsonify({'result': result})
-
-@app.route('/get_song_info', methods=['POST'])
-def get_song_info():
-    data = request.get_json()
-    song_url = data.get('songURL')  # Retrieve song URL from JSON payload
-
-    # Return the result as a JSON response
-    return download_song_info(song_url)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001)
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

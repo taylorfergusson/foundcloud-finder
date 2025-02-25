@@ -12,6 +12,7 @@ async function download(URL) {
         const username = trackInfo?.user?.username || 'Unknown artist';
 
         const jsonResponse = {
+            songURL: URL,
             artworkURL: artworkURL,
             title: title,
             username: username

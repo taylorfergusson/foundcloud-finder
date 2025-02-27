@@ -21,7 +21,6 @@ async function download(URL) {
         // Print JSON to stdout
         
         console.log(JSON.stringify(jsonResponse));
-        // process.exit(0); // Exit with an error code
     } catch (error) {
         console.error('Error fetching:', URL, error);
         console.log(JSON.stringify({ error: 'Failed to fetch track info' }));

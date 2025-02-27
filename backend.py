@@ -11,10 +11,8 @@ SAMPLE_RATE = 44100
 
 if os.path.exists('hash_database.json'):
     # Open and load the JSON data if the file exists
-    print("Loading database...")
     with open('hash_database.json', 'r') as f:
         hash_database = json.load(f)
-    print("Finished loading database.")
 else:
     hash_database = {}
 
@@ -81,23 +79,10 @@ def check_snippet(filepath):
 
     matches = get_matches(song_hashes, hash_database)
     return matches[0][0]
-    # top_matches = []
-    # for song_name, num_matches in matches:
-    #     top_matches.append(song_name)
-    #     print(f'Song: {song_name}, Matches: {num_matches}')
-
-    # if matches[0][1] > 5 and matches[0][1] > matches[1][1]+4:
-    #     print("PASSED")
-    #     return matches[0][0]
-    # else:
-    #     return ''
 
 def download_song_info(url):
-    print("URL IS....", url)
     result = subprocess.run(['node', 'download_info.js', url], capture_output=True, text=True)
-    print("Ok got the result now.....")
     if result.returncode == 0:
-        print(result.stdout)
         return json.loads(result.stdout)
     else:
         print(f"Error: {url} -- General download error")
@@ -114,7 +99,6 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 @app.post("/upload/")
 async def upload_audio(file: UploadFile = File(...)):
-    print("UPLOADING AUDIO!!!!")
     try:
         # Save the file
         file_path = os.path.join(UPLOAD_FOLDER, file.filename)
@@ -123,7 +107,6 @@ async def upload_audio(file: UploadFile = File(...)):
         
         # Process the file
         result = check_snippet(file_path)  # Now we pass the file path
-        print(result)
         info = download_song_info(result)
         return JSONResponse(content=info)
 

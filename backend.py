@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 SAMPLE_RATE = 44100 
 
 if os.path.exists('hash_database.json'):
+    print("Loading database...")
     # Open and load the JSON data if the file exists
     with open('hash_database.json', 'r') as f:
         hash_database = json.load(f)
@@ -100,6 +101,7 @@ if not os.path.exists(UPLOAD_FOLDER):
 @app.post("/upload/")
 async def upload_audio(file: UploadFile = File(...)):
     try:
+        print("Received request")
         # Save the file
         file_path = os.path.join(UPLOAD_FOLDER, file.filename)
         with open(file_path, "wb") as buffer:
@@ -107,6 +109,7 @@ async def upload_audio(file: UploadFile = File(...)):
         
         # Process the file
         result = check_snippet(file_path)  # Now we pass the file path
+        print("RESULT:", result)
         info = download_song_info(result)
         return JSONResponse(content=info)
 

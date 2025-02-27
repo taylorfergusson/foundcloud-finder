@@ -121,8 +121,8 @@ async def upload_audio(file: UploadFile = File(...)):
         # Process the file
         result = check_snippet(file_path)  # Now we pass the file path
         print(result)
-        # info = download_song_info(result)
-        info = {"songURL":"https://soundcloud.com/user21041984001/home-made-polysynth","artworkURL":"https://i1.sndcdn.com/artworks-doTNr43yky6k3Rfc-opSyag-t500x500.jpg","title":"AFX - Analord 04 / A2 // Home Made Polysynth","username":"user14041984001"}
+        info = download_song_info(result)
+        #info = {"songURL":"https://soundcloud.com/user21041984001/home-made-polysynth","artworkURL":"https://i1.sndcdn.com/artworks-doTNr43yky6k3Rfc-opSyag-t500x500.jpg","title":"AFX - Analord 04 / A2 // Home Made Polysynth","username":"user14041984001"}
         return JSONResponse(content=info)
 
     except Exception as e:

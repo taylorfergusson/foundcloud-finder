@@ -95,11 +95,13 @@ def check_snippet(filepath):
 def download_song_info(url):
     print("URL IS....", url)
     result = subprocess.run(['node', 'download_info.js', url], capture_output=True, text=True)
+    print("Ok got the result now.....")
     if result.returncode == 0:
         print(result.stdout)
         return json.loads(result.stdout)
     else:
         print(f"Error: {url} -- General download error")
+        print(result.stdout)
         return {'songURL': '', 'artworkURL': '', 'title': '', 'username': ''}
     
 

@@ -6,6 +6,7 @@ import json
 import librosa
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 SAMPLE_RATE = 44100 
 
@@ -93,6 +94,23 @@ def download_song_info(url):
     
 
 app = FastAPI()
+
+# Allowed frontend origins
+allowed_origins = [
+    "http://127.0.0.1:5500",   # Local frontend (Live Server)
+    "http://localhost:5500",   # Alternative local frontend
+    "https://foundcloud.taylorfergusson.com"  # Deployed frontend
+]
+
+# Add CORS settings
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
+
 # Directory to save uploaded files temporarily
 UPLOAD_FOLDER = 'uploads'
 if not os.path.exists(UPLOAD_FOLDER):

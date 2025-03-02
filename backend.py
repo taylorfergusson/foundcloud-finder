@@ -141,7 +141,7 @@ async def upload_audio(file: UploadFile = File(...)):
         # print("RESULT:", result[0])
         # print("CONFIDENCE:", result[1])
         info = download_song_info(result)
-        info["confidence"] = confidence
+        info["confidence"] = "Confidence: " + str(confidence) + "%"
         print(info)
         return JSONResponse(content=info)
 

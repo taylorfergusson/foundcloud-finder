@@ -91,7 +91,7 @@ def check_snippet(filepath):
 
     confidence = round(100 - ((matches[1][1] / matches[0][1]) * 50) - (100 / matches[0][1]), 2)
 
-    return matches[0][0], confidence
+    return matches[0][0], max(confidence, 0)
 
 def download_song_info(url):
     result = subprocess.run(['node', 'download_info.js', url], capture_output=True, text=True)
@@ -152,10 +152,10 @@ async def upload_audio(file: UploadFile = File(...)):
 if __name__ == '__main__':
     # import uvicorn
     # uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
-    file_path = './temp111.wav'
-    result, confidence = check_snippet(file_path)  # Now we pass the file path
-    print("RESULT:", result)
-    print("CONFIDENCE:", confidence)
-    info = download_song_info(result)
-    info["confidence"] = "Confidence: " + str(confidence) + "%"
-    print("INFO:", info)
+    # file_path = './temp111.wav'
+    # result, confidence = check_snippet(file_path)  # Now we pass the file path
+    # print("RESULT:", result)
+    # print("CONFIDENCE:", confidence)
+    # info = download_song_info(result)
+    # info["confidence"] = "Confidence: " + str(confidence) + "%"
+    # print("INFO:", info)

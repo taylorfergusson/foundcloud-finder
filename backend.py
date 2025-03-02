@@ -89,7 +89,7 @@ def check_snippet(filepath):
     # else:
     #     print("FAILED")
 
-    confidence = round(100 - ((matches[1][1] / matches[0][1]) * 100) - (100 / matches[0][1]), 2)
+    confidence = round(100 - ((matches[1][1] / matches[0][1]) * 50) - (100 / matches[0][1]), 2)
 
     return matches[0][0], confidence
 
@@ -157,5 +157,5 @@ if __name__ == '__main__':
     print("RESULT:", result)
     print("CONFIDENCE:", confidence)
     info = download_song_info(result)
-    info["confidence"] = confidence
+    info["confidence"] = "Confidence: " + str(confidence) + "%"
     print("INFO:", info)

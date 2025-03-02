@@ -152,7 +152,7 @@ async def upload_audio(file: UploadFile = File(...)):
 if __name__ == '__main__':
     # import uvicorn
     # uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
-    # file_path = './temp111.wav'
+    file_path = './temp111.wav'
     # result, confidence = check_snippet(file_path)  # Now we pass the file path
     # print("RESULT:", result)
     # print("CONFIDENCE:", confidence)

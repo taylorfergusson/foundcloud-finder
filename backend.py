@@ -80,7 +80,18 @@ def check_snippet(filepath):
     song_hashes = generate_hashes(key_points)
 
     matches = get_matches(song_hashes, hash_database)
-    return matches[0][0]
+
+    for song_name, num_matches in matches:
+        print(f'Song: {song_name}, Matches: {num_matches}')
+
+    # if matches[0][1] > 5 and matches[0][1] > matches[1][1]+4:
+    #     print("PASSED")
+    # else:
+    #     print("FAILED")
+
+    confidence = round(100 - ((matches[1][1] / matches[0][1]) * 100) - (100 / matches[0][1]), 2)
+
+    return matches[0][0], confidence
 
 def download_song_info(url):
     result = subprocess.run(['node', 'download_info.js', url], capture_output=True, text=True)
@@ -126,9 +137,12 @@ async def upload_audio(file: UploadFile = File(...)):
             shutil.copyfileobj(file.file, buffer)
         
         # Process the file
-        result = check_snippet(file_path)  # Now we pass the file path
-        print("RESULT:", result)
+        result, confidence = check_snippet(file_path)  # Now we pass the file path
+        # print("RESULT:", result[0])
+        # print("CONFIDENCE:", result[1])
         info = download_song_info(result)
+        info["confidence"] = confidence
+        print(info)
         return JSONResponse(content=info)
 
     except Exception as e:
@@ -136,5 +150,12 @@ async def upload_audio(file: UploadFile = File(...)):
     
 
 if __name__ == '__main__':
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    # import uvicorn
+    # uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    file_path = './temp111.wav'
+    result, confidence = check_snippet(file_path)  # Now we pass the file path
+    print("RESULT:", result)
+    print("CONFIDENCE:", confidence)
+    info = download_song_info(result)
+    info["confidence"] = confidence
+    print("INFO:", info)

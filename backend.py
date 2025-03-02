@@ -89,7 +89,7 @@ def check_snippet(filepath):
     # else:
     #     print("FAILED")
 
-    confidence = round(100 - ((matches[1][1] / matches[0][1]) * 50) - (100 / matches[0][1]), 2)
+    confidence = round(100 - ((matches[1][1] / matches[0][1]) * 50) - (100 / matches[0][1]))
 
     return matches[0][0], max(confidence, 0)
 

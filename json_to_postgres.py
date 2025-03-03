@@ -10,7 +10,7 @@ conn = psycopg2.connect(
     dbname="songdata",
     user="postgres",
     password="livinglegend",
-    host="35.182.230.172"
+    host="localhost"
 )
 cur = conn.cursor()
 

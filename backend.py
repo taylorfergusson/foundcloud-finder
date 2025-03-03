@@ -19,7 +19,7 @@ else:
     hash_database = {}
 
 def get_audio_samples(filepath):
-    samples, _ = librosa.load(filepath, sr=SAMPLE_RATE, backend="soundfile")
+    samples, _ = librosa.load(filepath, sr=SAMPLE_RATE)
     return samples
 
 def get_spectrogram(samples):

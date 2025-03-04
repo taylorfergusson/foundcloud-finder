@@ -66,7 +66,7 @@ def get_matches(query_hashes):
     try:
         conn = psycopg2.connect(
             dbname="song_hashes",
-            user="postgrestsf",
+            user="postgres",
             password="l1v1ngl3g3nd??",
             host="localhost",
             port="5432"

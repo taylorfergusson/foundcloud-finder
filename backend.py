@@ -4,19 +4,21 @@ import os
 import shutil
 import json
 import librosa
+import psycopg2
+from collections import defaultdict
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 SAMPLE_RATE = 44100 
 
-if os.path.exists('hash_database.json'):
-    print("Loading database...")
-    # Open and load the JSON data if the file exists
-    with open('hash_database.json', 'r') as f:
-        hash_database = json.load(f)
-else:
-    hash_database = {}
+# if os.path.exists('hash_database.json'):
+#     print("Loading database...")
+#     # Open and load the JSON data if the file exists
+#     with open('hash_database.json', 'r') as f:
+#         hash_database = json.load(f)
+# else:
+#     hash_database = {}
 
 def get_audio_samples(filepath):
     samples, _ = librosa.load(filepath, sr=SAMPLE_RATE)
@@ -59,7 +61,38 @@ def generate_hashes(key_points):
         hashes.append(hash_value)
     return hashes
 
-def get_matches(query_hashes, database):
+
+def get_matches(query_hashes):
+    try:
+        conn = psycopg2.connect(
+            dbname="song_hashes",
+            user="postgrestsf",
+            password="l1v1ngl3g3nd??",
+            host="localhost",
+            port="5432"
+        )
+        cur = conn.cursor()
+
+        # Find all matching songs for given query hashes
+        query = "SELECT song_names FROM song_hashes WHERE hash = ANY(%s)"
+        cur.execute(query, (query_hashes,))
+
+        # Aggregate match counts
+        match_counts = defaultdict(int)
+        for row in cur.fetchall():
+            for song in row[0]:  # song_names is a list
+                match_counts[song] += 1
+
+        conn.close()
+
+        # Return top 3 matches
+        return sorted(match_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+
+    except Exception as e:
+        print("Database error:", e)
+        return []
+    
+def get_matches1(query_hashes, database):
     matches = []
     for song_name, song_hashes in database.items():
         common_hashes = len(set(query_hashes).intersection(song_hashes))
@@ -79,8 +112,9 @@ def check_snippet(filepath):
     key_points = extract_key_points(Sxx)
     song_hashes = generate_hashes(key_points)
 
-    matches = get_matches(song_hashes, hash_database)
+    matches = get_matches(song_hashes)
 
+    print(matches)
     for song_name, num_matches in matches:
         print(f'Song: {song_name}, Matches: {num_matches}')
 
@@ -89,7 +123,8 @@ def check_snippet(filepath):
     # else:
     #     print("FAILED")
 
-    confidence = round(100 - ((matches[1][1] / matches[0][1]) * 50) - (100 / matches[0][1]))
+    #confidence = round(100 - ((matches[1][1] / matches[0][1]) * 50) - (100 / matches[0][1]))
+    confidence = 100
 
     return matches[0][0], max(confidence, 0)
 
@@ -153,9 +188,9 @@ if __name__ == '__main__':
     # import uvicorn
     # uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
     file_path = './temp111.wav'
-    # result, confidence = check_snippet(file_path)  # Now we pass the file path
-    # print("RESULT:", result)
-    # print("CONFIDENCE:", confidence)
-    # info = download_song_info(result)
-    # info["confidence"] = "Confidence: " + str(confidence) + "%"
-    # print("INFO:", info)
+    result, confidence = check_snippet(file_path)  # Now we pass the file path
+    print("RESULT:", result)
+    print("CONFIDENCE:", confidence)
+    info = download_song_info(result)
+    info["confidence"] = "Confidence: " + str(confidence) + "%"
+    print("INFO:", info)

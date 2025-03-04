@@ -118,13 +118,7 @@ def check_snippet(filepath):
     for song_name, num_matches in matches:
         print(f'Song: {song_name}, Matches: {num_matches}')
 
-    # if matches[0][1] > 5 and matches[0][1] > matches[1][1]+4:
-    #     print("PASSED")
-    # else:
-    #     print("FAILED")
-
-    #confidence = round(100 - ((matches[1][1] / matches[0][1]) * 50) - (100 / matches[0][1]))
-    confidence = 100
+    confidence = round(100 - ((matches[1][1] / matches[0][1]) * 50) - (100 / matches[0][1]))
 
     return matches[0][0], max(confidence, 0)
 
@@ -188,9 +182,9 @@ if __name__ == '__main__':
     # import uvicorn
     # uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
     file_path = './temp111.wav'
-    result, confidence = check_snippet(file_path)  # Now we pass the file path
-    print("RESULT:", result)
-    print("CONFIDENCE:", confidence)
-    info = download_song_info(result)
-    info["confidence"] = "Confidence: " + str(confidence) + "%"
-    print("INFO:", info)
+    # result, confidence = check_snippet(file_path)  # Now we pass the file path
+    # print("RESULT:", result)
+    # print("CONFIDENCE:", confidence)
+    # info = download_song_info(result)
+    # info["confidence"] = "Confidence: " + str(confidence) + "%"
+    # print("INFO:", info)

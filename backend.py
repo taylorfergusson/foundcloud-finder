@@ -113,7 +113,7 @@ def get_song_info(url):
 
     except Exception as e:
         print("Database error:", e)
-        return {'songURL': url, 'artworkURL': 'https://i.imgur.com/T5D5wxK.jpeg', 'title': 'Unknown Title', 'username': 'Match still found -- click tomato', 'duration': 0, 'bpm': 0}
+        return {'songURL': url, 'artworkURL': 'https://i.imgur.com/T5D5wxK.jpeg', 'title': 'Unknown Song', 'username': 'Match still found -- click tomato', 'duration': 0, 'bpm': 0}
 
 def check_snippet(filepath):
     # Load the MP3 file

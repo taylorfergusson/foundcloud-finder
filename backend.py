@@ -12,14 +12,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 SAMPLE_RATE = 44100 
 
-# if os.path.exists('hash_database.json'):
-#     print("Loading database...")
-#     # Open and load the JSON data if the file exists
-#     with open('hash_database.json', 'r') as f:
-#         hash_database = json.load(f)
-# else:
-#     hash_database = {}
-
 def get_audio_samples(filepath):
     samples, _ = librosa.load(filepath, sr=SAMPLE_RATE)
     return samples
@@ -121,7 +113,7 @@ def get_song_info(url):
 
     except Exception as e:
         print("Database error:", e)
-        return {}
+        return {'songURL': url, 'artworkURL': 'https://i.imgur.com/T5D5wxK.jpeg', 'title': 'Unknown Title', 'username': 'Match still found -- click tomato', 'duration': 0, 'bpm': 0}
 
 def check_snippet(filepath):
     # Load the MP3 file
@@ -139,7 +131,6 @@ def check_snippet(filepath):
 
     matches = get_matches(song_hashes)
 
-    print(matches)
     for song_name, num_matches in matches:
         print(f'Song: {song_name}, Matches: {num_matches}')
 

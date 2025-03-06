@@ -65,7 +65,7 @@ def generate_hashes(key_points):
 def get_matches(query_hashes):
     try:
         conn = psycopg2.connect(
-            dbname="song_hashes",
+            dbname="foundcloud_db",
             user="postgres",
             password="l1v1ngl3g3nd??",
             host="localhost",
@@ -74,13 +74,13 @@ def get_matches(query_hashes):
         cur = conn.cursor()
 
         # Find all matching songs for given query hashes
-        query = "SELECT song_names FROM song_hashes WHERE hash = ANY(%s)"
+        query = "SELECT song_urls FROM foundcloud_db WHERE hash = ANY(%s)"
         cur.execute(query, (query_hashes,))
 
         # Aggregate match counts
         match_counts = defaultdict(int)
         for row in cur.fetchall():
-            for song in row[0]:  # song_names is a list
+            for song in row[0]:  # song_urls is a list
                 match_counts[song] += 1
 
         conn.close()
@@ -92,21 +92,46 @@ def get_matches(query_hashes):
         print("Database error:", e)
         return []
     
-def get_matches1(query_hashes, database):
-    matches = []
-    for song_name, song_hashes in database.items():
-        common_hashes = len(set(query_hashes).intersection(song_hashes))
-        matches.append((song_name, common_hashes))
+def get_song_info(url):
+    try:
+        conn = psycopg2.connect(
+            dbname="foundcloud_db",
+            user="postgres",
+            password="l1v1ngl3g3nd??",
+            host="localhost",
+            port="5432"
+        )
+        cur = conn.cursor()
 
-    matches.sort(key=lambda x: x[1], reverse=True)
+        # Find all matching songs for given query hashes
+        query = "SELECT * FROM song_info WHERE song_url = %s"
+        cur.execute(query, (url,))
 
-    top_matches = matches[:3]
-    
-    return top_matches
+        row = cur.fetchone()
+
+        song_info = {}
+        song_info['songURL'] = row[0]
+        song_info['artworkURL'] = row[1]
+        song_info['title'] = row[2]
+        song_info['username'] = row[3]
+        song_info['duration'] = row[4]
+        song_info['bpm'] = row[5]
+
+        return song_info
+
+    except Exception as e:
+        print("Database error:", e)
+        return {}
 
 def check_snippet(filepath):
     # Load the MP3 file
     samples = get_audio_samples(filepath)
+
+    # Convert samples to float32 for librosa
+    # samples_float = samples.astype(np.float32) / np.max(np.abs(samples))  # Normalize audio
+    # samples_float = librosa.effects.time_stretch(samples_float, rate=1.0)
+    # samples_float = librosa.effects.pitch_shift(samples_float, sr=SAMPLE_RATE, n_steps=0)
+    # samples = (samples_float * np.max(np.abs(samples))).astype(np.int16)  # Convert back to int16
 
     Sxx = get_spectrogram(samples)
     key_points = extract_key_points(Sxx)
@@ -122,15 +147,15 @@ def check_snippet(filepath):
 
     return matches[0][0], max(confidence, 0)
 
-def download_song_info(url):
-    result = subprocess.run(['node', 'download_info.js', url], capture_output=True, text=True)
-    if result.returncode == 0:
-        return json.loads(result.stdout)
-    else:
-        print(f"Error: {url} -- General download error")
-        print(result.stdout)
-        print(result.stderr)
-        return {'songURL': '', 'artworkURL': '', 'title': '', 'username': ''}
+# def download_song_info(url):
+#     result = subprocess.run(['node', 'download_info.js', url], capture_output=True, text=True)
+#     if result.returncode == 0:
+#         return json.loads(result.stdout)
+#     else:
+#         print(f"Error: {url} -- General download error")
+#         print(result.stdout)
+#         print(result.stderr)
+#         return {'songURL': '', 'artworkURL': '', 'title': '', 'username': ''}
     
 
 app = FastAPI()
@@ -169,7 +194,7 @@ async def upload_audio(file: UploadFile = File(...)):
         result, confidence = check_snippet(file_path)  # Now we pass the file path
         # print("RESULT:", result[0])
         # print("CONFIDENCE:", result[1])
-        info = download_song_info(result)
+        info = get_song_info(result)
         info["confidence"] = "Confidence: " + str(confidence) + "%"
         print(info)
         return JSONResponse(content=info)
@@ -182,6 +207,8 @@ if __name__ == '__main__':
     # import uvicorn
     # uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
     file_path = './temp111.wav'
+    url = 'https://soundcloud.com/user21041984001/home-made-polysynth'
+    get_song_info(url)
     # result, confidence = check_snippet(file_path)  # Now we pass the file path
     # print("RESULT:", result)
     # print("CONFIDENCE:", confidence)

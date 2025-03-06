@@ -74,7 +74,7 @@ def get_matches(query_hashes):
         cur = conn.cursor()
 
         # Find all matching songs for given query hashes
-        query = "SELECT song_urls FROM foundcloud_db WHERE hash = ANY(%s)"
+        query = "SELECT song_urls FROM song_hashes WHERE hash = ANY(%s)"
         cur.execute(query, (query_hashes,))
 
         # Aggregate match counts

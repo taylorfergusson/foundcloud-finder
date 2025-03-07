@@ -175,7 +175,7 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 @app.get('/health/')
 async def health_check():
-    return {"status": "Server is running"}
+    return {"status": "ok"}
 
 @app.post("/upload/")
 async def upload_audio(request: Request, file: UploadFile = File(...)):

@@ -18,7 +18,7 @@ def get_audio_samples(filepath):
 
 def get_spectrogram(samples):
     # Compute the spectrogram
-    S = librosa.stft(samples, n_fft=4096, hop_length=2048)
+    S = librosa.stft(samples, n_fft=4096, hop_length=8820)
     # Convert to power spectrogram (magnitude squared)
     Sxx = np.abs(S)**2
     return Sxx

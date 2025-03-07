@@ -130,13 +130,16 @@ def check_snippet(filepath):
     key_points = extract_key_points(Sxx)
     song_hashes = generate_hashes(key_points)
 
+    print("Getting song matches")
+
     matches = get_matches(song_hashes)
 
     for song_name, num_matches in matches:
         print(f'Song: {song_name}, Matches: {num_matches}')
 
+    print("Getting confidence")
     confidence = round(100 - ((matches[1][1] / matches[0][1]) * 50) - (100 / matches[0][1]))
-
+    print("Returning matches")
     return matches[0][0], max(confidence, 0)
 
 # def download_song_info(url):
@@ -188,17 +191,20 @@ async def upload_audio(request: Request, file: UploadFile = File(...)):
         # Save the file
         file_path = os.path.join(UPLOAD_FOLDER, new_filename)
 
-
+        print("Opening file_path")
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
+        print("Processing file")
         # Process the file
         result, confidence = check_snippet(file_path)  # Now we pass the file path
         # print("RESULT:", result[0])
         # print("CONFIDENCE:", result[1])
+        print("Getting song info")
         info = get_song_info(result)
         info["confidence"] = "Confidence: " + str(confidence) + "%"
         #print(info)
+        print("FINISHED!!!")
         return JSONResponse(content=info)
 
     except Exception as e:

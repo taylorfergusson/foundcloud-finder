@@ -5,8 +5,9 @@ import shutil
 import json
 import librosa
 import psycopg2
+from datetime import datetime
 from collections import defaultdict
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -173,9 +174,12 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 @app.post("/upload/")
-async def upload_audio(file: UploadFile = File(...)):
+async def upload_audio(request: Request, file: UploadFile = File(...)):
     try:
         print("Received request")
+
+        new_filename = request.client.host + datetime.now().strftime("_%y-%m-%d_%H-%m-%S") + file.filename[3:]
+        print("NEW FILENAME:", new_filename)
 
         # Save the file
         file_path = os.path.join(UPLOAD_FOLDER, file.filename)

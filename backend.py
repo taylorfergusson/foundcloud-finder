@@ -173,7 +173,7 @@ UPLOAD_FOLDER = 'uploads'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-@app.post('/health/"')
+@app.get('/health/"')
 async def health_check():
     return {"status": "Server is running"}
 

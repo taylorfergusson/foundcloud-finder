@@ -1,0 +1,11 @@
+# Environment variables
+.env
+
+# AWS credentials
+.aws/credentials
+
+# Git directory (not usually necessary but good to check)
+.git/
+
+# Other sensitive files
+config.json

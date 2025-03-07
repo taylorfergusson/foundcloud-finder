@@ -174,10 +174,10 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 @app.get('/health/"')
-async def health_check():
+def health_check():
     return {"status": "Server is running"}
 
-@app.post("/upload/")
+@app.post("/upload")
 async def upload_audio(request: Request, file: UploadFile = File(...)):
     try:
         print("Received request")

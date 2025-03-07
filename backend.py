@@ -138,7 +138,10 @@ def check_snippet(filepath):
         print(f'Song: {song_name}, Matches: {num_matches}')
 
     print("Getting confidence")
-    confidence = round(100 - ((matches[1][1] / matches[0][1]) * 50) - (100 / matches[0][1]))
+    if len(matches) > 1:
+        confidence = round(100 - ((matches[1][1] / matches[0][1]) * 50) - (100 / matches[0][1]))
+    else:
+        confidence = 100
     print("Returning matches")
     return matches[0][0], max(confidence, 0)
 

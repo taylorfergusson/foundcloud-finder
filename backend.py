@@ -176,8 +176,13 @@ if not os.path.exists(UPLOAD_FOLDER):
 async def upload_audio(file: UploadFile = File(...)):
     try:
         print("Received request")
+
         # Save the file
         file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+
+        print(file_path)
+
+
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
@@ -187,7 +192,7 @@ async def upload_audio(file: UploadFile = File(...)):
         # print("CONFIDENCE:", result[1])
         info = get_song_info(result)
         info["confidence"] = "Confidence: " + str(confidence) + "%"
-        print(info)
+        #print(info)
         return JSONResponse(content=info)
 
     except Exception as e:

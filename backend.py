@@ -178,13 +178,11 @@ async def upload_audio(request: Request, file: UploadFile = File(...)):
     try:
         print("Received request")
 
-        new_filename = request.client.host + datetime.now().strftime("_%y-%m-%d_%H-%m-%S") + file.filename[3:]
+        new_filename = request.client.host.replace(".", "-") + datetime.now().strftime("_%y-%m-%d_%H-%m-%S") + file.filename[3:]
         print("NEW FILENAME:", new_filename)
 
         # Save the file
-        file_path = os.path.join(UPLOAD_FOLDER, file.filename)
-
-        print(file_path)
+        file_path = os.path.join(UPLOAD_FOLDER, new_filename)
 
 
         with open(file_path, "wb") as buffer:

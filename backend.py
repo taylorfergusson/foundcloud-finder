@@ -1,10 +1,9 @@
-import subprocess
 import numpy as np
 import os
 import shutil
-import json
 import librosa
 import psycopg2
+from math import floor
 from datetime import datetime
 from collections import defaultdict
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request
@@ -12,37 +11,50 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 SAMPLE_RATE = 44100 
+N_FFT = 4096
+HOP_LENGTH = N_FFT // 4
+LOW_CUT = 0.15
+HIGH_CUT = 0.25
+TRIM_START = 0
+TRIM_END = 0
 
-def get_audio_samples(filepath):
-    print('~~~~~~~~~~')
-    samples, _ = librosa.load(filepath, sr=SAMPLE_RATE)
-    print('~~~~~~~~~~')
+def get_audio_samples(filepath, sr=SAMPLE_RATE, trim_start=TRIM_START, trim_end=TRIM_END):
+    try:
+        samples, _ = librosa.load(filepath, mono=True, sr=sr)
+        samples = librosa.util.normalize(samples)
+        samples = samples[(round(sr*trim_start)):-(round(sr*trim_end)+1)]
+    except ValueError as e:
+        print(f"ValueError: {e}")
+        print("Possible file corruption or format issue.")
+        return np.array([])
     return samples
 
-def get_spectrogram(samples):
+def get_spectrogram(samples, sr=SAMPLE_RATE, n_fft=N_FFT, hop_length=HOP_LENGTH):
     # Compute the spectrogram
-    S = librosa.stft(samples, n_fft=4096, hop_length=8820)
-    # Convert to power spectrogram (magnitude squared)
-    Sxx = np.abs(S)**2
+    Sxx = librosa.feature.melspectrogram(y=samples, sr=sr, n_fft=n_fft, hop_length=hop_length)
     return Sxx
 
-def extract_key_points(Sxx):
+def extract_key_points(Sxx, low_cut=LOW_CUT, high_cut=HIGH_CUT):
+    bins = Sxx.shape[0]
+    
     key_points = []
     for t_idx in range(len(Sxx[1])):
         # Get the frequency bins with the highest magnitude in the current time slice
         slice_magnitudes = Sxx[:, t_idx]
         slice_magnitudes[0] = 0
 
+        f_idx = floor(bins * low_cut)
+        frame = (bins - f_idx - floor(bins * high_cut)) // 4 
+
         top_freqs = [0, 0, 0, 0]
 
-        index = 0
-        for f_idx in range(18, 466):
-            if (f_idx - 18) % 113 == 112:
-                index += 1
+        for i in range(4):
+            for j in range(frame):
+                magnitude = slice_magnitudes[f_idx]
+                if magnitude > slice_magnitudes[top_freqs[i]]:
+                    top_freqs[i] = f_idx
 
-            magnitude = slice_magnitudes[f_idx]
-            if magnitude > slice_magnitudes[top_freqs[index]]:
-                top_freqs[index] = f_idx
+                f_idx += 1
 
         if 0 not in top_freqs:
             key_points.append(top_freqs)
@@ -52,8 +64,8 @@ def extract_key_points(Sxx):
 def generate_hashes(key_points):
     hashes = []
     for points in key_points:
-        hash_value = ' '.join([str(p) for p in points])
-        hashes.append(hash_value)
+        hash_value = ''.join([str(p) for p in points])
+        hashes.append(int(hash_value))
     return hashes
 
 
@@ -142,18 +154,8 @@ def check_snippet(filepath):
     else:
         confidence = 100
 
-    return matches[0][0], max(confidence, 0)
-
-# def download_song_info(url):
-#     result = subprocess.run(['node', 'download_info.js', url], capture_output=True, text=True)
-#     if result.returncode == 0:
-#         return json.loads(result.stdout)
-#     else:
-#         print(f"Error: {url} -- General download error")
-#         print(result.stdout)
-#         print(result.stderr)
-#         return {'songURL': '', 'artworkURL': '', 'title': '', 'username': ''}
-    
+    #return matches[0][0], max(confidence, 0)
+    return 'https://soundcloud.com/user21041984001/home-made-polysynth', 0
 
 app = FastAPI()
 
@@ -210,12 +212,11 @@ async def upload_audio(request: Request, file: UploadFile = File(...)):
 if __name__ == '__main__':
     # import uvicorn
     # uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
-    file_path = './temp111.wav'
+    file_path = './sueno.mp3'
     url = 'https://soundcloud.com/user21041984001/home-made-polysynth'
-    get_song_info(url)
-    # result, confidence = check_snippet(file_path)  # Now we pass the file path
-    # print("RESULT:", result)
-    # print("CONFIDENCE:", confidence)
-    # info = download_song_info(result)
-    # info["confidence"] = "Confidence: " + str(confidence) + "%"
-    # print("INFO:", info)
+    info = get_song_info(url)
+    result, confidence = check_snippet(file_path)  # Now we pass the file path
+    print("RESULT:", result)
+    print("CONFIDENCE:", confidence)
+    info["confidence"] = "Confidence: " + str(confidence) + "%"
+    print("INFO:", info)

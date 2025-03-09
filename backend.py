@@ -80,6 +80,8 @@ def get_matches(query_hashes):
         )
         cur = conn.cursor()
 
+        print("TYPE:", type(query_hashes[0]))
+
         # Find all matching songs for given query hashes
         query = "SELECT song_urls FROM song_hashes WHERE hash = ANY(%s)"
         cur.execute(query, (query_hashes,))
@@ -143,6 +145,7 @@ def check_snippet(filepath):
     Sxx = get_spectrogram(samples)
     key_points = extract_key_points(Sxx)
     song_hashes = generate_hashes(key_points)
+    print(song_hashes[0:3])
 
     matches = get_matches(song_hashes)
 

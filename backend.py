@@ -157,8 +157,7 @@ def check_snippet(filepath):
     else:
         confidence = 100
 
-    #return matches[0][0], max(confidence, 0)
-    return 'https://soundcloud.com/user21041984001/home-made-polysynth', 0
+    return matches[0][0], max(confidence, 0)
 
 app = FastAPI()
 
@@ -216,10 +215,10 @@ if __name__ == '__main__':
     # import uvicorn
     # uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
     file_path = './sueno.mp3'
-    url = 'https://soundcloud.com/user21041984001/home-made-polysynth'
-    info = get_song_info(url)
-    result, confidence = check_snippet(file_path)  # Now we pass the file path
-    print("RESULT:", result)
-    print("CONFIDENCE:", confidence)
-    info["confidence"] = "Confidence: " + str(confidence) + "%"
-    print("INFO:", info)
+    # url = 'https://soundcloud.com/user21041984001/home-made-polysynth'
+    # info = get_song_info(url)
+    # result, confidence = check_snippet(file_path)  # Now we pass the file path
+    # print("RESULT:", result)
+    # print("CONFIDENCE:", confidence)
+    # info["confidence"] = "Confidence: " + str(confidence) + "%"
+    # print("INFO:", info)

@@ -3,9 +3,10 @@ import os
 import shutil
 import librosa
 import psycopg2
-from math import floor
+import hashlib
+from scipy.ndimage import maximum_filter, binary_erosion, generate_binary_structure, iterate_structure
 from datetime import datetime
-from collections import defaultdict
+from collections import defaultdict, Counter
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +18,14 @@ LOW_CUT = 0.15
 HIGH_CUT = 0.25
 TRIM_START = 0
 TRIM_END = 0
+
+DEFAULT_FAN_VALUE = 11
+DEFAULT_AMP_MIN = 0
+CONNECTIVITY_MASK = 2
+PEAK_NEIGHBORHOOD_SIZE = 0
+MIN_HASH_TIME_DELTA = 0
+MAX_HASH_TIME_DELTA = 200
+FINGERPRINT_REDUCTION = 20
 
 def get_audio_samples(filepath, sr=SAMPLE_RATE, trim_start=TRIM_START, trim_end=TRIM_END):
     try:
@@ -34,40 +43,69 @@ def get_spectrogram(samples, sr=SAMPLE_RATE, n_fft=N_FFT, hop_length=HOP_LENGTH)
     Sxx = librosa.feature.melspectrogram(y=samples, sr=sr, n_fft=n_fft, hop_length=hop_length)
     return Sxx
 
-def extract_key_points(Sxx, low_cut=LOW_CUT, high_cut=HIGH_CUT):
-    bins = Sxx.shape[0]
-    
-    key_points = []
-    for t_idx in range(len(Sxx[1])):
-        # Get the frequency bins with the highest magnitude in the current time slice
-        slice_magnitudes = Sxx[:, t_idx]
-        slice_magnitudes[0] = 0
+def extract_key_points(Sxx, dam=DEFAULT_AMP_MIN, cm=CONNECTIVITY_MASK, pns=PEAK_NEIGHBORHOOD_SIZE):
+        struct = generate_binary_structure(2, cm)
+        neighborhood = iterate_structure(struct, pns)
 
-        f_idx = floor(bins * low_cut)
-        frame = (bins - f_idx - floor(bins * high_cut)) // 4 
+        # find local maxima using our filter mask
+        local_max = maximum_filter(Sxx, footprint=neighborhood) == Sxx
 
-        top_freqs = [0, 0, 0, 0]
+        # Applying erosion, the dejavu documentation does not talk about this step.
+        background = (Sxx == 0)
+        eroded_background = binary_erosion(background, structure=neighborhood, border_value=1)
 
-        for i in range(4):
-            for j in range(frame):
-                magnitude = slice_magnitudes[f_idx]
-                if magnitude > slice_magnitudes[top_freqs[i]]:
-                    top_freqs[i] = f_idx
+        # Boolean mask of arr2D with True at peaks (applying XOR on both matrices).
+        detected_peaks = local_max != eroded_background
 
-                f_idx += 1
+        # extract peaks
+        amps = Sxx[detected_peaks]
+        freqs, times = np.where(detected_peaks)
 
-        if 0 not in top_freqs:
-            key_points.append(top_freqs)
-            
-    return key_points
+        # filter peaks
+        amps = amps.flatten()
 
-def generate_hashes(key_points):
-    hashes = []
-    for points in key_points:
-        hash_value = ''.join([str(p) for p in points])
-        hashes.append(int(hash_value))
-    return hashes
+        # get indices for frequency and time
+        filter_idxs = np.where(amps > dam)
 
+        freqs_filter = freqs[filter_idxs]
+        times_filter = times[filter_idxs]
+
+        return list(zip(freqs_filter, times_filter))
+
+def generate_hashes(peaks, dfv=DEFAULT_FAN_VALUE, min_hst=MIN_HASH_TIME_DELTA, max_hst=MAX_HASH_TIME_DELTA, fr=FINGERPRINT_REDUCTION):
+        # frequencies are in the first position of the tuples
+        idx_freq = 0
+        # times are in the second position of the tuples
+        idx_time = 1
+
+        hashes = []
+        for i in range(len(peaks)):
+            for j in range(1, dfv):
+                if (i + j) < len(peaks):
+
+                    freq1 = peaks[i][idx_freq]
+                    freq2 = peaks[i + j][idx_freq]
+                    t1 = peaks[i][idx_time]
+                    t2 = peaks[i + j][idx_time]
+                    t_delta = t2 - t1
+
+                    if min_hst <= t_delta <= max_hst:
+                        h = hashlib.sha1(f"{str(freq1)}|{str(freq2)}|{str(t_delta)}".encode('utf-8'))
+                        hex_hash = h.hexdigest()  # Get the full hex digest
+                        # Convert entire hex hash to an integer in one step
+                        int_hash = int(hex_hash, 16)  
+                        # Extract only the first `fr` digits
+                        hash = int(str(int_hash)[:fr])
+                        hashes.append(hash)
+
+
+        counter = Counter(hashes)
+        # Get the 1000 most common elements (the result is a list of tuples: (element, count))
+        most_common = counter.most_common(1000)
+        # Extract only the unique elements (first item of the tuple)
+        unique_elements = [element for element, count in most_common]
+        hashes = unique_elements
+        return hashes
 
 def get_matches(query_hashes):
     try:
@@ -79,8 +117,6 @@ def get_matches(query_hashes):
             port="5432"
         )
         cur = conn.cursor()
-
-        print("TYPE:", type(query_hashes[0]))
 
         # Find all matching songs for given query hashes
         query = "SELECT song_urls FROM song_hashes WHERE hash = ANY(%s)"
@@ -145,7 +181,6 @@ def check_snippet(filepath):
     Sxx = get_spectrogram(samples)
     key_points = extract_key_points(Sxx)
     song_hashes = generate_hashes(key_points)
-    print(song_hashes[0:3])
 
     matches = get_matches(song_hashes)
 
@@ -157,7 +192,12 @@ def check_snippet(filepath):
     else:
         confidence = 100
 
-    return matches[0][0], max(confidence, 0)
+    if len(matches) == 0:
+        match = ''
+    else:
+        match = matches[0][0]
+
+    return match, max(confidence, 0)
 
 app = FastAPI()
 
@@ -214,11 +254,10 @@ async def upload_audio(request: Request, file: UploadFile = File(...)):
 if __name__ == '__main__':
     # import uvicorn
     # uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
-    file_path = './sueno.mp3'
-    # url = 'https://soundcloud.com/user21041984001/home-made-polysynth'
-    # info = get_song_info(url)
-    # result, confidence = check_snippet(file_path)  # Now we pass the file path
-    # print("RESULT:", result)
-    # print("CONFIDENCE:", confidence)
-    # info["confidence"] = "Confidence: " + str(confidence) + "%"
-    # print("INFO:", info)
+    file_path = './sueno.webm'
+    result, confidence = check_snippet(file_path)  # Now we pass the file path
+
+    info = get_song_info(result)
+    info["confidence"] = "Confidence: " + str(confidence) + "%"
+
+    print(info)

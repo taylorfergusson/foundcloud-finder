@@ -11,27 +11,22 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-SAMPLE_RATE = 44100 
+SAMPLE_RATE = 44100
 N_FFT = 4096
 HOP_LENGTH = N_FFT // 4
-LOW_CUT = 0.15
-HIGH_CUT = 0.25
-TRIM_START = 0
-TRIM_END = 0
 
-DEFAULT_FAN_VALUE = 11
-DEFAULT_AMP_MIN = 0
+DEFAULT_FAN_VALUE = 10
+DEFAULT_AMP_MIN = 6
 CONNECTIVITY_MASK = 2
-PEAK_NEIGHBORHOOD_SIZE = 0
-MIN_HASH_TIME_DELTA = 0
-MAX_HASH_TIME_DELTA = 200
+PEAK_NEIGHBORHOOD_SIZE = 7
+MIN_HASH_TIME_DELTA = 11
+MAX_HASH_TIME_DELTA = 119
 FINGERPRINT_REDUCTION = 16
 
-def get_audio_samples(filepath, sr=SAMPLE_RATE, trim_start=TRIM_START, trim_end=TRIM_END):
+def get_audio_samples(filepath, sr=SAMPLE_RATE):
     try:
         samples, _ = librosa.load(filepath, mono=True, sr=sr)
         samples = librosa.util.normalize(samples)
-        samples = samples[(round(sr*trim_start)):-(round(sr*trim_end)+1)]
     except ValueError as e:
         print(f"ValueError: {e}")
         print("Possible file corruption or format issue.")
@@ -78,7 +73,7 @@ def generate_hashes(peaks, dfv=DEFAULT_FAN_VALUE, min_hst=MIN_HASH_TIME_DELTA, m
         # times are in the second position of the tuples
         idx_time = 1
 
-        hashes = []
+        hashes = set()
         for i in range(len(peaks)):
             for j in range(1, dfv):
                 if (i + j) < len(peaks):
@@ -96,16 +91,9 @@ def generate_hashes(peaks, dfv=DEFAULT_FAN_VALUE, min_hst=MIN_HASH_TIME_DELTA, m
                         int_hash = int(hex_hash, 16)  
                         # Extract only the first `fr` digits
                         hash = int(str(int_hash)[:fr])
-                        hashes.append(hash)
+                        hashes.add(hash)
 
-
-        counter = Counter(hashes)
-        # Get the 1000 most common elements (the result is a list of tuples: (element, count))
-        most_common = counter.most_common(1000)
-        # Extract only the unique elements (first item of the tuple)
-        unique_elements = [element for element, count in most_common]
-        hashes = unique_elements
-        return hashes
+        return list(hashes)
 
 def get_matches(query_hashes):
     try:

@@ -118,6 +118,7 @@ def get_matches(query_hashes):
         )
         cur = conn.cursor()
 
+        print(query_hashes[0:5])
         # Find all matching songs for given query hashes
         query = "SELECT song_urls FROM song_hashes WHERE hash = ANY(%s)"
         cur.execute(query, (query_hashes,))
@@ -127,7 +128,7 @@ def get_matches(query_hashes):
         for row in cur.fetchall():
             for song in row[0]:  # song_urls is a list
                 match_counts[song] += 1
-
+        print("MATCHCOUNTS SIZE:", len(match_counts))
         conn.close()
 
         # Return top 3 matches

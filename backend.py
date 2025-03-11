@@ -91,7 +91,7 @@ def generate_hashes(peaks, dfv=DEFAULT_FAN_VALUE, min_hst=MIN_HASH_TIME_DELTA, m
                         int_hash = int(hex_hash, 16)  
                         # Extract only the first `fr` digits
                         hash = int(str(int_hash)[:fr])
-                        hashes.add(str(hash))
+                        hashes.add(hash)
 
         return list(hashes)
 

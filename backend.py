@@ -4,6 +4,7 @@ import shutil
 import librosa
 import psycopg2
 import hashlib
+from collections import defaultdict
 from warnings import filterwarnings
 from scipy.ndimage import maximum_filter, binary_erosion, generate_binary_structure, iterate_structure
 from datetime import datetime

@@ -4,12 +4,14 @@ import shutil
 import librosa
 import psycopg2
 import hashlib
+from warnings import filterwarnings
 from scipy.ndimage import maximum_filter, binary_erosion, generate_binary_structure, iterate_structure
 from datetime import datetime
-from collections import defaultdict, Counter
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+
+filterwarnings("ignore")
 
 SAMPLE_RATE = 44100
 N_FFT = 4096
@@ -106,7 +108,6 @@ def get_matches(query_hashes):
         )
         cur = conn.cursor()
 
-        print(query_hashes[0:5])
         # Find all matching songs for given query hashes
         query = "SELECT song_urls FROM song_hashes WHERE hash = ANY(%s)"
         cur.execute(query, (query_hashes,))
@@ -116,7 +117,7 @@ def get_matches(query_hashes):
         for row in cur.fetchall():
             for song in row[0]:  # song_urls is a list
                 match_counts[song] += 1
-        print("MATCHCOUNTS SIZE:", len(match_counts))
+
         conn.close()
 
         # Return top 3 matches

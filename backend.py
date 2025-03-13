@@ -13,7 +13,6 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from scipy.ndimage import maximum_filter, binary_erosion, generate_binary_structure, iterate_structure
-from slowapi.util import get_remote_address
 
 filterwarnings("ignore")
 logging.basicConfig(level=logging.INFO)

@@ -13,7 +13,6 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from scipy.ndimage import maximum_filter, binary_erosion, generate_binary_structure, iterate_structure
-from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 filterwarnings("ignore")
@@ -216,8 +215,6 @@ app.add_middleware(
     allow_methods=["POST", "GET"],  # Allow all HTTP methods
     allow_headers=["Authorization", "Content-Type"],  # Allow all headers
 )
-
-limiter = Limiter(key_func=get_remote_address)
 
 UPLOAD_FOLDER = pathlib.Path("uploads").resolve()
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)

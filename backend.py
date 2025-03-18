@@ -167,6 +167,7 @@ def get_song_info(song_path):
 
 def check_snippet(filepath):
     # Load the MP3 file
+    print("Getting audio samples")
     samples = get_audio_samples(filepath)
 
     # Convert samples to float32 for librosa
@@ -175,6 +176,7 @@ def check_snippet(filepath):
     # samples_float = librosa.effects.pitch_shift(samples_float, sr=SAMPLE_RATE, n_steps=0)
     # samples = (samples_float * np.max(np.abs(samples))).astype(np.int16)  # Convert back to int16
 
+    print("Getting spect")
     Sxx = get_spectrogram(samples)
     tempo = get_tempo(samples)
     peaks = extract_peaks(Sxx)

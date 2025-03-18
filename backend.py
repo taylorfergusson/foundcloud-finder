@@ -235,11 +235,15 @@ async def upload_audio(request: Request, file: UploadFile = File(...)):
             raise HTTPException(status_code=400, detail="Invalid file type")
         filename = request.client.host.replace(".", "-") + datetime.now().strftime("_%y-%m-%d_%H-%M-%S") + file.filename[3:]
         # Save the file
+        print(filename)
         filepath = UPLOAD_FOLDER / filename
+        print("Opening file as buffer")
         with open(filepath, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         # Process the file
+        print("Processing file")
         result, confidence = check_snippet(str(filepath))  # Now we pass the file path
+        print("Getting song info")
         info = get_song_info(result)
         info["confidence"] = "Confidence: " + str(confidence) + "%"
         return JSONResponse(content=info)

@@ -187,7 +187,7 @@ def check_snippet(filepath):
     if len(matches) > 1:
         confidence = round(100 * (1 - (matches[1][1] / matches[0][1])))
     else:
-        confidence = 100
+        confidence = 0
 
 
     if len(matches) == 0:

@@ -163,7 +163,7 @@ def get_song_info(song_path):
 
     except Exception as e:
         logging.error(f"Database error for song_info: {e}")
-        return {'song_path': song_path, 'artwork_path': '', 'title': 'Unknown Song', 'username': 'Match still found -- click tomato', 'duration': 0, 'tempo': 0, 'key':'', 'num_hashes': 0}
+        return None
 
 def check_snippet(filepath):
     # Load the MP3 file
@@ -239,7 +239,12 @@ async def upload_audio(request: Request, file: UploadFile = File(...)):
             shutil.copyfileobj(file.file, buffer)
         # Process the file
         result, confidence = check_snippet(str(filepath))  # Now we pass the file path
+        print(f"Result: {result}")
+        print(f"Confidence: {confidence}")
         info = get_song_info(result)
+        if not info:
+            print("No matches found")
+            return None
         info["confidence"] = "Confidence: " + str(confidence) + "%"
         return JSONResponse(content=info)
     except Exception as e:

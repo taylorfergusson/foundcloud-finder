@@ -59,6 +59,7 @@ def get_audio_samples(filepath, sr=SAMPLE_RATE):
         samples, _ = librosa.load(filepath, mono=True, sr=sr)
         samples = librosa.util.normalize(samples)
     except ValueError as e:
+        print("GOT ERROR IN GAS")
         logging.error(f"ValueError: {e} -- Possible file corruption or format issue")
         # Return silent 1 second
         return np.zeros(SAMPLE_RATE)

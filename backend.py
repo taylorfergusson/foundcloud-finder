@@ -56,17 +56,12 @@ DB_CONFIG = {
 
 def get_audio_samples(filepath, sr=SAMPLE_RATE):
     try:
-        print("Loading")
         samples, _ = librosa.load(filepath, mono=True, sr=sr)
-        print("Normalizing")
         samples = librosa.util.normalize(samples)
-        print("Done!")
     except ValueError as e:
-        print("GOT ERROR IN GAS")
         logging.error(f"ValueError: {e} -- Possible file corruption or format issue")
         # Return silent 1 second
         return np.zeros(SAMPLE_RATE)
-    print("Returning")
     return samples
 
 def get_tempo(samples, sr=SAMPLE_RATE):
@@ -172,7 +167,6 @@ def get_song_info(song_path):
 
 def check_snippet(filepath):
     # Load the MP3 file
-    print("Getting audio samples")
     samples = get_audio_samples(filepath)
 
     # Convert samples to float32 for librosa
@@ -181,7 +175,6 @@ def check_snippet(filepath):
     # samples_float = librosa.effects.pitch_shift(samples_float, sr=SAMPLE_RATE, n_steps=0)
     # samples = (samples_float * np.max(np.abs(samples))).astype(np.int16)  # Convert back to int16
 
-    print("Getting spect")
     Sxx = get_spectrogram(samples)
     tempo = get_tempo(samples)
     peaks = extract_peaks(Sxx)
@@ -237,25 +230,19 @@ async def health_check():
 async def upload_audio(request: Request, file: UploadFile = File(...)):
     try:
         logging.info("Received request")
-        print(file.filename)
         if not allowed_file(file.filename):
             raise HTTPException(status_code=400, detail="Invalid file type")
         filename = request.client.host.replace(".", "-") + datetime.now().strftime("_%y-%m-%d_%H-%M-%S") + file.filename[3:]
         # Save the file
-        print(filename)
         filepath = UPLOAD_FOLDER / filename
-        print("Opening file as buffer")
         with open(filepath, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         # Process the file
-        print("Processing file")
         result, confidence = check_snippet(str(filepath))  # Now we pass the file path
-        print("Getting song info")
         info = get_song_info(result)
         info["confidence"] = "Confidence: " + str(confidence) + "%"
         return JSONResponse(content=info)
     except Exception as e:
-        print(e)
         raise HTTPException(status_code=500, detail=str(e))
     
 

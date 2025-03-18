@@ -56,13 +56,17 @@ DB_CONFIG = {
 
 def get_audio_samples(filepath, sr=SAMPLE_RATE):
     try:
+        print("Loading")
         samples, _ = librosa.load(filepath, mono=True, sr=sr)
+        print("Normalizing")
         samples = librosa.util.normalize(samples)
+        print("Done!")
     except ValueError as e:
         print("GOT ERROR IN GAS")
         logging.error(f"ValueError: {e} -- Possible file corruption or format issue")
         # Return silent 1 second
         return np.zeros(SAMPLE_RATE)
+    print("Returning")
     return samples
 
 def get_tempo(samples, sr=SAMPLE_RATE):

@@ -58,6 +58,7 @@ def get_audio_samples(filepath, sr=SAMPLE_RATE):
     try:
         samples, _ = librosa.load(filepath, mono=True, sr=sr)
         samples = librosa.util.normalize(samples)
+        print(f"File is {len(samples // sr)} seconds long")
     except ValueError as e:
         logging.error(f"ValueError: {e} -- Possible file corruption or format issue")
         # Return silent 1 second
@@ -218,6 +219,7 @@ app.add_middleware(
 UPLOAD_FOLDER = pathlib.Path("uploads").resolve()
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 ALLOWED_EXTS = {".mp3", ".wav", ".ogg", ".flac", ".webm"}
+user_matches = defaultdict(list)
 
 def allowed_file(filename):
     return pathlib.Path(filename).suffix.lower() in ALLOWED_EXTS

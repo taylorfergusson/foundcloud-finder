@@ -58,7 +58,7 @@ def get_audio_samples(filepath, sr=SAMPLE_RATE):
     try:
         samples, _ = librosa.load(filepath, mono=True, sr=sr)
         samples = librosa.util.normalize(samples)
-        print(f"File is {len(samples) // sr // 1000} seconds long")
+        print(f"File is {len(samples) // sr} seconds long")
     except ValueError as e:
         logging.error(f"ValueError: {e} -- Possible file corruption or format issue")
         # Return silent 1 second

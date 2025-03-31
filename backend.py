@@ -239,6 +239,7 @@ async def upload_audio(request: Request, file: UploadFile = File(...)):
         filepath = UPLOAD_FOLDER / filename
         with open(filepath, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+        print("File is called:", filename)
         # Process the file
         result, confidence = check_snippet(str(filepath))  # Now we pass the file path
         print(f"Result: {result}")

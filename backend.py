@@ -8,7 +8,7 @@ from warnings import filterwarnings
 import librosa
 import numpy as np
 import psycopg2
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from scipy.ndimage import maximum_filter, binary_erosion, generate_binary_structure, iterate_structure
@@ -229,19 +229,25 @@ async def health_check():
     return {"status": "ok"}
 
 @app.post("/upload/")
-async def upload_audio(request: Request, file: UploadFile = File(...)):
+async def upload_audio(request: Request, file: UploadFile = File(...), newSession: str = Form(None)):
     try:
         print("Received request")
         print()
         print("match_counts size:", len(match_counts))
         if not allowed_file(file.filename):
             raise HTTPException(status_code=400, detail="Invalid file type")
+        
+        if newSession == 'true':
+            print("New session, resetting match_counts")
+            match_counts = defaultdict(int)
+
         filename = request.client.host.replace(".", "-") + datetime.now().strftime("_%y-%m-%d_%H-%M-%S") + file.filename[3:]
         # Save the file
         filepath = UPLOAD_FOLDER / filename
         with open(filepath, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         print("File is called:", filename)
+
         # Process the file
         result, confidence = check_snippet(str(filepath))  # Now we pass the file path
         print(f"Result: {result}")

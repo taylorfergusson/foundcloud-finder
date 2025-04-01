@@ -229,6 +229,7 @@ async def health_check():
 
 @app.post("/upload/")
 async def upload_audio(request: Request, file: UploadFile = File(...), newSession: str = Form(None)):
+    global match_counts
     try:
         print("Received request")
         print()
@@ -237,7 +238,6 @@ async def upload_audio(request: Request, file: UploadFile = File(...), newSessio
             raise HTTPException(status_code=400, detail="Invalid file type")
         
         if newSession == 'true':
-            global match_counts
             match_counts.clear()  # Instead of reassigning it
 
 

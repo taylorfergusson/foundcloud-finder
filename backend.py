@@ -184,7 +184,7 @@ def check_snippet(filepath):
         print(f'Song: {song_name}, Matches: {num_matches}')
 
     if len(matches) > 1:
-        confidence = round(100 * (1 - (matches[1][1] / matches[0][1])))
+        confidence = round(100 * (1 - (matches[1][1] / matches[0][1])) + matches[0][1])
     else:
         confidence = 0
 
@@ -232,7 +232,6 @@ async def upload_audio(request: Request, file: UploadFile = File(...), newSessio
     global match_counts
     try:
         print("Received request")
-        print()
         print("match_counts size:", len(match_counts))
         if not allowed_file(file.filename):
             raise HTTPException(status_code=400, detail="Invalid file type")

@@ -141,7 +141,7 @@ def get_matches(query_hashes):
                         match_counts[song] += 1
 
         # Return top 3 matches
-        return sorted(match_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+        return sorted(match_counts.items(), key=lambda x: x[1], reverse=True)[:10]
 
     except Exception as e:
         print(f"Database error for song_hashes: {e}")

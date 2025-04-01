@@ -1,5 +1,4 @@
 import hashlib
-import logging
 import pathlib
 import shutil
 from collections import defaultdict
@@ -15,7 +14,6 @@ from fastapi.responses import JSONResponse
 from scipy.ndimage import maximum_filter, binary_erosion, generate_binary_structure, iterate_structure
 
 filterwarnings("ignore")
-logging.basicConfig(level=logging.INFO)
 
 SAMPLE_RATE = 44100
 N_FFT = 4096
@@ -60,7 +58,7 @@ def get_audio_samples(filepath, sr=SAMPLE_RATE):
         samples = librosa.util.normalize(samples)
         print(f"File is {len(samples) // sr} seconds long")
     except ValueError as e:
-        logging.error(f"ValueError: {e} -- Possible file corruption or format issue")
+        print(f"ValueError: {e} -- Possible file corruption or format issue")
         # Return silent 1 second
         return np.zeros(SAMPLE_RATE)
     return samples
@@ -146,7 +144,7 @@ def get_matches(query_hashes):
         return sorted(match_counts.items(), key=lambda x: x[1], reverse=True)[:10]
 
     except Exception as e:
-        logging.error(f"Database error for song_hashes: {e}")
+        print(f"Database error for song_hashes: {e}")
         return []
     
 def get_song_info(song_path):
@@ -163,7 +161,7 @@ def get_song_info(song_path):
         return song_info
 
     except Exception as e:
-        logging.error(f"Database error for song_info: {e}")
+        print(f"Database error for song_info: {e}")
         return None
 
 def check_snippet(filepath):
@@ -183,7 +181,7 @@ def check_snippet(filepath):
     matches = get_matches(song_hashes)
 
     for song_name, num_matches in matches:
-        logging.info(f'Song: {song_name}, Matches: {num_matches}')
+        print(f'Song: {song_name}, Matches: {num_matches}')
 
     if len(matches) > 1:
         confidence = round(100 * (1 - (matches[1][1] / matches[0][1])))
@@ -231,7 +229,7 @@ async def health_check():
 @app.post("/upload/")
 async def upload_audio(request: Request, file: UploadFile = File(...)):
     try:
-        logging.info("Received request")
+        print("Received request")
         if not allowed_file(file.filename):
             raise HTTPException(status_code=400, detail="Invalid file type")
         filename = request.client.host.replace(".", "-") + datetime.now().strftime("_%y-%m-%d_%H-%M-%S") + file.filename[3:]
@@ -263,4 +261,4 @@ if __name__ == '__main__':
     info = get_song_info(result)
     info["confidence"] = "Confidence: " + str(confidence) + "%"
 
-    logging.info(info)
+    print(info)

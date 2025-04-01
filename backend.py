@@ -143,7 +143,7 @@ def get_matches(query_hashes):
                         match_counts[song] += 1
 
         # Return top 3 matches
-        return sorted(match_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+        return sorted(match_counts.items(), key=lambda x: x[1], reverse=True)[:10]
 
     except Exception as e:
         logging.error(f"Database error for song_hashes: {e}")
@@ -244,7 +244,7 @@ async def upload_audio(request: Request, file: UploadFile = File(...)):
         result, confidence = check_snippet(str(filepath))  # Now we pass the file path
         print(f"Result: {result}")
         print(f"Confidence: {confidence}")
-        if not result or confidence < 20:
+        if not result or confidence < 25:
             print("No solid matches found")
             return JSONResponse(content={})
         info = get_song_info(result)

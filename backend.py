@@ -227,14 +227,14 @@ async def health_check():
     return {"status": "ok"}
 
 @app.post("/upload/")
-async def upload_audio(request: Request, file: UploadFile = File(...), newSession: str = Form(None)):
+async def upload_audio(request: Request, file: UploadFile = File(...), clipNum: str = Form(None)):
     global match_counts
     try:
-        print("Received request")
+        print(f"Received request #{clipNum}")
         if not allowed_file(file.filename):
             raise HTTPException(status_code=400, detail="Invalid file type")
         
-        if newSession == 'true':
+        if clipNum == '1':
             match_counts.clear()  # Instead of reassigning it
 
         filename = request.client.host.replace(".", "-") + datetime.now().strftime("_%y-%m-%d_%H-%M-%S") + file.filename[3:]

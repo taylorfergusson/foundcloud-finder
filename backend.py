@@ -247,7 +247,7 @@ async def upload_audio(request: Request, file: UploadFile = File(...), clipNum: 
         result, confidence = check_snippet(str(filepath))  # Now we pass the file path
         print(f"Result: {result}")
         print(f"Confidence: {confidence}")
-        if not result or confidence < 20:
+        if not result or confidence < 20 and int(clipNum) < 4:
             print("No solid matches found")
             return JSONResponse(content={})
         info = get_song_info(result)

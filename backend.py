@@ -51,6 +51,7 @@ DB_CONFIG = {
     #"sslmode": "require"
 }
 
+match_counts = defaultdict(int)
 
 def get_audio_samples(filepath, sr=SAMPLE_RATE):
     try:
@@ -135,7 +136,6 @@ def get_matches(query_hashes):
                 cur.execute(query, (list(query_hashes),))
 
                 # Aggregate match counts
-                match_counts = defaultdict(int)
                 for row in cur.fetchall():
                     for song in row[0]:
                         match_counts[song] += 1
@@ -224,12 +224,15 @@ def allowed_file(filename):
 
 @app.get('/health/')
 async def health_check():
+    global match_counts
+    match_counts = defaultdict(int)
     return {"status": "ok"}
 
 @app.post("/upload/")
 async def upload_audio(request: Request, file: UploadFile = File(...)):
     try:
         print("Received request")
+        print("match_counts size:", len(match_counts))
         if not allowed_file(file.filename):
             raise HTTPException(status_code=400, detail="Invalid file type")
         filename = request.client.host.replace(".", "-") + datetime.now().strftime("_%y-%m-%d_%H-%M-%S") + file.filename[3:]

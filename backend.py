@@ -225,7 +225,6 @@ def allowed_file(filename):
 @app.get('/health/')
 async def health_check():
     global match_counts
-    match_counts = defaultdict(int)
     return {"status": "ok"}
 
 @app.post("/upload/")
@@ -238,8 +237,9 @@ async def upload_audio(request: Request, file: UploadFile = File(...), newSessio
             raise HTTPException(status_code=400, detail="Invalid file type")
         
         if newSession == 'true':
-            print("New session, resetting match_counts")
-            match_counts = defaultdict(int)
+            global match_counts
+            match_counts.clear()  # Instead of reassigning it
+
 
         filename = request.client.host.replace(".", "-") + datetime.now().strftime("_%y-%m-%d_%H-%M-%S") + file.filename[3:]
         # Save the file

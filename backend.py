@@ -1,4 +1,5 @@
 import hashlib
+import os
 import pathlib
 import shutil
 from collections import defaultdict
@@ -33,25 +34,24 @@ MAX_FREQ = 205
 
 #FALLBACK_IMG_URL = 'https://i.imgur.com/T5D5wxK.jpeg'
 
-# DB_CONFIG = {
-#     "dbname": os.getenv("DB_NAME"),
-#     "user": os.getenv("DB_USER"),
-#     "password": os.getenv("DB_PASS"),
-#     "host": os.getenv("DB_HOST"),
-#     "port": os.getenv("DB_PORT"),
-#     "sslmode": "require"
-# }
-
+# DB config comes from environment variables instead of being hardcoded in
+# source. Locally, copy .env.example to .env and fill it in (it's already
+# gitignored). On the server, these are set in /etc/foundcloud/foundcloud.env
+# and loaded by the systemd unit -- never commit a real .env file.
 DB_CONFIG = {
-    "dbname": 'foundcloud_db',
-    "user": 'postgres',
-    "password": 'l1v1ngl3g3nd??',
-    "host": 'localhost',
-    "port": 5432,
+    "dbname": os.environ["DB_NAME"],
+    "user": os.environ["DB_USER"],
+    "password": os.environ["DB_PASSWORD"],
+    "host": os.environ.get("DB_HOST", "localhost"),
+    "port": int(os.environ.get("DB_PORT", 5432)),
     #"sslmode": "require"
 }
 
-match_counts = defaultdict(int)
+# match_counts used to be a single module-level dict shared by every
+# request, which meant one visitor's matches could leak into another's
+# results. It's now tracked per-client (see session_matches / upload_audio).
+#match_counts = defaultdict(int)
+session_matches = {}
 
 def get_audio_samples(filepath, sr=SAMPLE_RATE):
     try:
@@ -127,7 +127,7 @@ def generate_hashes(peaks, tempo, dfv=DEFAULT_FAN_VALUE, min_hst=MIN_HASH_TIME_D
 
     return list(hashes)
 
-def get_matches(query_hashes):
+def get_matches(query_hashes, match_counts):
     try:
         with psycopg2.connect(**DB_CONFIG) as conn:
             with conn.cursor() as cur:
@@ -145,7 +145,7 @@ def get_matches(query_hashes):
     except Exception as e:
         print(f"Database error for song_hashes: {e}")
         return []
-    
+
 def get_song_info(song_path):
     try:
         with psycopg2.connect(**DB_CONFIG) as conn:
@@ -163,7 +163,7 @@ def get_song_info(song_path):
         print(f"Database error for song_info: {e}")
         return None
 
-def check_snippet(filepath):
+def check_snippet(filepath, match_counts):
     # Load the MP3 file
     samples = get_audio_samples(filepath)
 
@@ -177,7 +177,7 @@ def check_snippet(filepath):
     tempo = get_tempo(samples)
     peaks = extract_peaks(Sxx)
     song_hashes = generate_hashes(peaks, tempo)
-    matches = get_matches(song_hashes)
+    matches = get_matches(song_hashes, match_counts)
 
     for song_name, num_matches in matches:
         print(f'Song: {song_name}, Matches: {num_matches}')
@@ -201,7 +201,7 @@ app = FastAPI()
 allowed_origins = [
     "http://127.0.0.1:5500",   # Local frontend (Live Server)
     "http://localhost:5500",   # Alternative local frontend
-    "https://foundcloud.taylorfergusson.com"  # Deployed frontend
+    os.environ.get("FRONTEND_ORIGIN", "https://foundcloud.taylorfergusson.com")  # Deployed frontend
 ]
 
 # Add CORS settings
@@ -213,7 +213,7 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],  # Allow all headers
 )
 
-UPLOAD_FOLDER = pathlib.Path("uploads").resolve()
+UPLOAD_FOLDER = pathlib.Path(os.environ.get("UPLOAD_FOLDER", "uploads")).resolve()
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 ALLOWED_EXTS = {".mp3", ".wav", ".ogg", ".flac", ".webm"}
 user_matches = defaultdict(list)
@@ -223,17 +223,22 @@ def allowed_file(filename):
 
 @app.get('/health/')
 async def health_check():
-    global match_counts
     return {"status": "ok"}
 
 @app.post("/upload/")
 async def upload_audio(request: Request, file: UploadFile = File(...), clipNum: str = Form(None)):
-    global match_counts
+    # Match counts are scoped per client so concurrent visitors never see
+    # each other's results (this used to be a single shared global dict).
+    client_ip = request.client.host
+    if clipNum == '1' or client_ip not in session_matches:
+        session_matches[client_ip] = defaultdict(int)
+    match_counts = session_matches[client_ip]
+
     try:
         print(f"Received request #{clipNum}")
         if not allowed_file(file.filename):
             raise HTTPException(status_code=400, detail="Invalid file type")
-        
+
         if clipNum == '1':
             match_counts.clear()  # Instead of reassigning it
 
@@ -244,7 +249,7 @@ async def upload_audio(request: Request, file: UploadFile = File(...), clipNum: 
             shutil.copyfileobj(file.file, buffer)
 
         # Process the file
-        result, confidence = check_snippet(str(filepath))  # Now we pass the file path
+        result, confidence = check_snippet(str(filepath), match_counts)  # Now we pass the file path
         print(f"Result: {result}")
         print(f"Confidence: {confidence}")
         if not result or confidence < 20 and int(clipNum) < 4:
@@ -255,13 +260,13 @@ async def upload_audio(request: Request, file: UploadFile = File(...), clipNum: 
         return JSONResponse(content=info)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 
 if __name__ == '__main__':
     # import uvicorn
     # uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
     filepath = './sueno.webm'
-    result, confidence = check_snippet(filepath)  # Now we pass the file path
+    result, confidence = check_snippet(filepath, defaultdict(int))  # Now we pass the file path
 
     info = get_song_info(result)
     info["confidence"] = "Confidence: " + str(confidence) + "%"

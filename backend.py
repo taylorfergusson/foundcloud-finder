@@ -34,10 +34,6 @@ MAX_FREQ = 205
 
 #FALLBACK_IMG_URL = 'https://i.imgur.com/T5D5wxK.jpeg'
 
-# DB config comes from environment variables instead of being hardcoded in
-# source. Locally, copy .env.example to .env and fill it in (it's already
-# gitignored). On the server, these are set in /etc/foundcloud/foundcloud.env
-# and loaded by the systemd unit -- never commit a real .env file.
 DB_CONFIG = {
     "dbname": os.environ["DB_NAME"],
     "user": os.environ["DB_USER"],
@@ -47,10 +43,6 @@ DB_CONFIG = {
     #"sslmode": "require"
 }
 
-# match_counts used to be a single module-level dict shared by every
-# request, which meant one visitor's matches could leak into another's
-# results. It's now tracked per-client (see session_matches / upload_audio).
-#match_counts = defaultdict(int)
 session_matches = {}
 
 def get_audio_samples(filepath, sr=SAMPLE_RATE):
@@ -80,7 +72,7 @@ def extract_peaks(Sxx, dam=DEFAULT_AMP_MIN, cm=CONNECTIVITY_MASK, pns=PEAK_NEIGH
     # find local maxima using our filter mask
     local_max = maximum_filter(Sxx, footprint=neighborhood) == Sxx
 
-    # Applying erosion, the dejavu documentation does not talk about this step.
+    # applying erosion
     background = (Sxx == 0)
     eroded_background = binary_erosion(background, structure=neighborhood, border_value=1)
 

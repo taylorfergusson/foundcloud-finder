@@ -4,11 +4,8 @@
 # AWS credentials
 .aws/credentials
 
-# Git directory (not usually necessary but good to check)
+# Git directory
 .git/
-
-# Other sensitive files
-config.json
 
 # macOS
 .DS_Store
@@ -18,3 +15,6 @@ config.json
 __pycache__/
 *.pyc
 venv/
+
+# Other
+config.json

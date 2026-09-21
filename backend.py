@@ -174,7 +174,7 @@ def check_snippet(filepath, match_counts):
     else:
         match = matches[0][0]
 
-    return match, len(song_hashes)
+    return match, matches, len(song_hashes)
 
 app = FastAPI()
 
@@ -231,12 +231,12 @@ def upload_audio(request: Request, file: UploadFile = File(...), clipNum: str = 
             shutil.copyfileobj(file.file, buffer)
 
 
-        result, num_hashes_clip = check_snippet(str(filepath), match_counts)
+        result, matches, num_hashes_clip = check_snippet(str(filepath), match_counts)
         session_total_hashes[client_ip] += num_hashes_clip
 
-        total_hashes = session_total_hashes[client_ip]
-        top_match_count = match_counts[result] if result else 0
-        confidence = round(100 * top_match_count / total_hashes) if total_hashes else 0
+        top_count = matches[0][1] if matches else 0
+        second_count = matches[1][1] if len(matches) > 1 else 0
+        confidence = round(100 * top_count / (top_count + second_count)) if (top_count + second_count) else 0
 
         print(f"Result: {result}")
         print(f"Confidence: {confidence}")
@@ -255,7 +255,10 @@ if __name__ == '__main__':
     # import uvicorn
     # uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
     filepath = './sueno.webm'
-    result, confidence = check_snippet(filepath, defaultdict(int))  # Now we pass the file path
+    result, matches, _ = check_snippet(filepath, defaultdict(int))
+    top_count = matches[0][1] if matches else 0
+    second_count = matches[1][1] if len(matches) > 1 else 0
+    confidence = round(100 * top_count / (top_count + second_count)) if (top_count + second_count) else 0
 
     info = get_song_info(result)
     info["confidence"] = "Confidence: " + str(confidence) + "%"

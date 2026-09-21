@@ -44,6 +44,7 @@ DB_CONFIG = {
 }
 
 session_matches = {}
+session_total_hashes = {}
 
 def get_audio_samples(filepath, sr=SAMPLE_RATE):
     try:
@@ -159,12 +160,6 @@ def check_snippet(filepath, match_counts):
     # Load the MP3 file
     samples = get_audio_samples(filepath)
 
-    # Convert samples to float32 for librosa
-    # samples_float = samples.astype(np.float32) / np.max(np.abs(samples))  # Normalize audio
-    # samples_float = librosa.effects.time_stretch(samples_float, rate=1.0)
-    # samples_float = librosa.effects.pitch_shift(samples_float, sr=SAMPLE_RATE, n_steps=0)
-    # samples = (samples_float * np.max(np.abs(samples))).astype(np.int16)  # Convert back to int16
-
     Sxx = get_spectrogram(samples)
     tempo = get_tempo(samples)
     peaks = extract_peaks(Sxx)
@@ -174,18 +169,12 @@ def check_snippet(filepath, match_counts):
     for song_name, num_matches in matches:
         print(f'Song: {song_name}, Matches: {num_matches}')
 
-    if len(matches) > 1:
-        confidence = round(100 * (1 - (matches[1][1] / matches[0][1])))
-    else:
-        confidence = 0
-
-
     if len(matches) == 0:
         match = ''
     else:
         match = matches[0][0]
 
-    return match, confidence
+    return match, len(song_hashes)
 
 app = FastAPI()
 
@@ -224,6 +213,7 @@ def upload_audio(request: Request, file: UploadFile = File(...), clipNum: str = 
     client_ip = request.client.host
     if clipNum == '1' or client_ip not in session_matches:
         session_matches[client_ip] = defaultdict(int)
+        session_total_hashes[client_ip] = 0
     match_counts = session_matches[client_ip]
 
     try:
@@ -240,8 +230,14 @@ def upload_audio(request: Request, file: UploadFile = File(...), clipNum: str = 
         with open(filepath, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # Process the file
-        result, confidence = check_snippet(str(filepath), match_counts)  # Now we pass the file path
+
+        result, num_hashes_clip = check_snippet(str(filepath), match_counts)
+        session_total_hashes[client_ip] += num_hashes_clip
+
+        total_hashes = session_total_hashes[client_ip]
+        top_match_count = match_counts[result] if result else 0
+        confidence = round(100 * top_match_count / total_hashes) if total_hashes else 0
+
         print(f"Result: {result}")
         print(f"Confidence: {confidence}")
         if not result or confidence < 20 and int(clipNum) < 4:
@@ -250,6 +246,7 @@ def upload_audio(request: Request, file: UploadFile = File(...), clipNum: str = 
         info = get_song_info(result)
         info["confidence"] = "Confidence: " + str(confidence) + "%"
         return JSONResponse(content=info)
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

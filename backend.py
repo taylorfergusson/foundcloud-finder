@@ -66,7 +66,7 @@ def get_audio_samples(filepath, sr=SAMPLE_RATE):
 def get_tempo(samples, sr=SAMPLE_RATE):
     onset_env = librosa.onset.onset_strength(y=samples, sr=sr)
     tempo, _ = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr)
-    int_tempo = round(float(tempo))
+    int_tempo = round(float(np.atleast_1d(tempo)[0]))
     return int_tempo
 
 def get_spectrogram(samples, sr=SAMPLE_RATE, n_fft=N_FFT, hop_length=HOP_LENGTH, n_mels=N_MELS):

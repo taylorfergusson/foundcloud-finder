@@ -226,7 +226,7 @@ async def health_check():
     return {"status": "ok"}
 
 @app.post("/upload/")
-async def upload_audio(request: Request, file: UploadFile = File(...), clipNum: str = Form(None)):
+def upload_audio(request: Request, file: UploadFile = File(...), clipNum: str = Form(None)):
     # Match counts are scoped per client so concurrent visitors never see
     # each other's results (this used to be a single shared global dict).
     client_ip = request.client.host
